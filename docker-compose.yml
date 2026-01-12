@@ -1,0 +1,73 @@
+services:
+  orchestrator:
+    build: ./Orchestrator
+    ports:
+      - "5000:8080"
+    networks:
+      - perf-net
+    depends_on:
+      - grpc-service
+      - websocket-service
+      - rest-service
+
+  rest-service:
+    build: ./Rest-Service
+    container_name: rest-service
+    ports:
+      - "5001:8081"
+    networks:
+      - perf-net
+
+  grpc-service:
+    build: ./gRPC-Service
+    container_name: grpc-service
+    ports:
+      - "5002:5002"
+    networks:
+      - perf-net
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+
+  websocket-service:
+    build: ./WebSocket-Service
+    container_name: websocket-service
+    ports:
+      - "5003:8083"
+    networks:
+      - perf-net
+  
+
+
+
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - orchestrator
+      - rest-service
+      - grpc-service
+      - websocket-service
+    networks:
+      - perf-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=1234
+    depends_on:
+      - prometheus
+    networks:
+      - perf-net
+
+networks:
+  perf-net:
+    driver: bridge
